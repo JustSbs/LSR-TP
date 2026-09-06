@@ -1,0 +1,170 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Remove previous version
+local oldGui = playerGui:FindFirstChild("TeleportGui")
+if oldGui then
+	oldGui:Destroy()
+end
+
+local teleporting = false
+local minimized = false
+
+-- GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "TeleportGui"
+gui.ResetOnSpawn = false
+gui.Parent = playerGui
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 240, 0, 120)
+frame.Position = UDim2.new(0.5, -120, 0.5, -60)
+frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+frame.BorderSizePixel = 0
+frame.Parent = gui
+
+local frameCorner = Instance.new("UICorner")
+frameCorner.CornerRadius = UDim.new(0, 10)
+frameCorner.Parent = frame
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -70, 0, 35)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "Teleport"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.TextSize = 20
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = frame
+
+-- Minimize button
+local minimize = Instance.new("TextButton")
+minimize.Size = UDim2.new(0, 30, 0, 30)
+minimize.Position = UDim2.new(1, -65, 0, 3)
+minimize.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+minimize.Text = "−"
+minimize.TextColor3 = Color3.new(1, 1, 1)
+minimize.TextSize = 20
+minimize.Font = Enum.Font.GothamBold
+minimize.Parent = frame
+
+Instance.new("UICorner", minimize).CornerRadius = UDim.new(0, 7)
+
+-- Close button
+local close = Instance.new("TextButton")
+close.Size = UDim2.new(0, 30, 0, 30)
+close.Position = UDim2.new(1, -32, 0, 3)
+close.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+close.Text = "X"
+close.TextColor3 = Color3.new(1, 1, 1)
+close.TextSize = 16
+close.Font = Enum.Font.GothamBold
+close.Parent = frame
+
+Instance.new("UICorner", close).CornerRadius = UDim.new(0, 7)
+
+-- ON/OFF button
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 180, 0, 45)
+button.Position = UDim2.new(0.5, -90, 0, 55)
+button.BackgroundColor3 = Color3.fromRGB(170, 50, 50)
+button.Text = "OFF"
+button.TextColor3 = Color3.new(1, 1, 1)
+button.TextSize = 18
+button.Font = Enum.Font.GothamBold
+button.Parent = frame
+
+Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
+
+-- ON/OFF
+button.MouseButton1Click:Connect(function()
+	teleporting = not teleporting
+
+	if teleporting then
+		button.Text = "ON"
+		button.BackgroundColor3 = Color3.fromRGB(50, 170, 80)
+	else
+		button.Text = "OFF"
+		button.BackgroundColor3 = Color3.fromRGB(170, 50, 50)
+	end
+end)
+
+-- Minimize / restore
+minimize.MouseButton1Click:Connect(function()
+	minimized = not minimized
+
+	if minimized then
+		frame.Size = UDim2.new(0, 240, 0, 38)
+		minimize.Text = "+"
+		button.Visible = false
+	else
+		frame.Size = UDim2.new(0, 240, 0, 120)
+		minimize.Text = "−"
+		button.Visible = true
+	end
+end)
+
+-- Close completely
+close.MouseButton1Click:Connect(function()
+	teleporting = false
+	gui:Destroy()
+end)
+
+-- Draggable
+local dragging = false
+local dragStart
+local startPos
+
+frame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and (
+		input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch
+	) then
+
+		local delta = input.Position - dragStart
+
+		frame.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+-- Teleport loop
+task.spawn(function()
+	while gui.Parent do
+		if teleporting then
+			local character = player.Character
+			local root = character and character:FindFirstChild("HumanoidRootPart")
+
+			if root then
+				root.CFrame = CFrame.new(-1336, -55, 960)
+			end
+		end
+
+		task.wait(0.1)
+	end
+end)
