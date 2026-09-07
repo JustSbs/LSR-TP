@@ -4,16 +4,13 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Teleport destination
-local TELEPORT_POSITION = Vector3.new(-456, -160, 2050)
-
 -- Remove previous version
 local oldGui = playerGui:FindFirstChild("TeleportGui")
 if oldGui then
 	oldGui:Destroy()
 end
 
--- Remove old platform if one exists
+-- Remove previous platform
 local oldPlatform = workspace:FindFirstChild("TeleportPlatform_" .. player.UserId)
 if oldPlatform then
 	oldPlatform:Destroy()
@@ -22,14 +19,15 @@ end
 local teleporting = false
 local minimized = false
 
--- Create platform
+local TARGET = Vector3.new(8787, -605, 1954)
+
+-- Platform
 local platform = Instance.new("Part")
 platform.Name = "TeleportPlatform_" .. player.UserId
 platform.Size = Vector3.new(12, 1, 12)
 platform.Anchored = true
 platform.CanCollide = true
-platform.Transparency = 0
-platform.Position = TELEPORT_POSITION - Vector3.new(0, 4, 0)
+platform.Position = TARGET - Vector3.new(0, 3.5, 0)
 platform.Parent = workspace
 
 -- GUI
@@ -45,9 +43,7 @@ frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 frame.BorderSizePixel = 0
 frame.Parent = gui
 
-local frameCorner = Instance.new("UICorner")
-frameCorner.CornerRadius = UDim.new(0, 10)
-frameCorner.Parent = frame
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 
 -- Title
 local title = Instance.new("TextLabel")
@@ -61,7 +57,7 @@ title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = frame
 
--- Minimize button
+-- Minimize
 local minimize = Instance.new("TextButton")
 minimize.Size = UDim2.new(0, 30, 0, 30)
 minimize.Position = UDim2.new(1, -65, 0, 3)
@@ -74,7 +70,7 @@ minimize.Parent = frame
 
 Instance.new("UICorner", minimize).CornerRadius = UDim.new(0, 7)
 
--- Close button
+-- Close
 local close = Instance.new("TextButton")
 close.Size = UDim2.new(0, 30, 0, 30)
 close.Position = UDim2.new(1, -32, 0, 3)
@@ -87,7 +83,7 @@ close.Parent = frame
 
 Instance.new("UICorner", close).CornerRadius = UDim.new(0, 7)
 
--- ON/OFF button
+-- Toggle
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0, 180, 0, 45)
 button.Position = UDim2.new(0.5, -90, 0, 55)
@@ -100,7 +96,6 @@ button.Parent = frame
 
 Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
 
--- ON/OFF
 button.MouseButton1Click:Connect(function()
 	teleporting = not teleporting
 
@@ -128,7 +123,7 @@ minimize.MouseButton1Click:Connect(function()
 	end
 end)
 
--- Close completely
+-- Close
 close.MouseButton1Click:Connect(function()
 	teleporting = false
 
@@ -139,7 +134,7 @@ close.MouseButton1Click:Connect(function()
 	gui:Destroy()
 end)
 
--- Draggable
+-- Dragging
 local dragging = false
 local dragStart
 local startPos
@@ -182,14 +177,13 @@ task.spawn(function()
 	while gui.Parent do
 		if teleporting then
 			local character = player.Character
-			local root = character and character:FindFirstChild("HumanoidRootPart")
 
-			if root then
-				-- Keep platform underneath the destination
-				platform.Position = TELEPORT_POSITION - Vector3.new(0, 4, 0)
+			if character then
+				local root = character:FindFirstChild("HumanoidRootPart")
 
-				-- Teleport player
-				root.CFrame = CFrame.new(TELEPORT_POSITION)
+				if root then
+					root.CFrame = CFrame.new(TARGET)
+				end
 			end
 		end
 
