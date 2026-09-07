@@ -1,4 +1,3 @@
-```lua
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 
@@ -197,4 +196,3 @@ task.spawn(function()
 		task.wait(0.1)
 	end
 end)
-```
