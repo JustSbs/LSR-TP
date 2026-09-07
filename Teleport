@@ -1,8 +1,12 @@
+```lua
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
+
+-- Teleport destination
+local TELEPORT_POSITION = Vector3.new(-456, -160, 2050)
 
 -- Remove previous version
 local oldGui = playerGui:FindFirstChild("TeleportGui")
@@ -10,8 +14,24 @@ if oldGui then
 	oldGui:Destroy()
 end
 
+-- Remove old platform if one exists
+local oldPlatform = workspace:FindFirstChild("TeleportPlatform_" .. player.UserId)
+if oldPlatform then
+	oldPlatform:Destroy()
+end
+
 local teleporting = false
 local minimized = false
+
+-- Create platform
+local platform = Instance.new("Part")
+platform.Name = "TeleportPlatform_" .. player.UserId
+platform.Size = Vector3.new(12, 1, 12)
+platform.Anchored = true
+platform.CanCollide = true
+platform.Transparency = 0
+platform.Position = TELEPORT_POSITION - Vector3.new(0, 4, 0)
+platform.Parent = workspace
 
 -- GUI
 local gui = Instance.new("ScreenGui")
@@ -112,6 +132,11 @@ end)
 -- Close completely
 close.MouseButton1Click:Connect(function()
 	teleporting = false
+
+	if platform then
+		platform:Destroy()
+	end
+
 	gui:Destroy()
 end)
 
@@ -161,10 +186,15 @@ task.spawn(function()
 			local root = character and character:FindFirstChild("HumanoidRootPart")
 
 			if root then
-				root.CFrame = CFrame.new(-1336, -55, 960)
+				-- Keep platform underneath the destination
+				platform.Position = TELEPORT_POSITION - Vector3.new(0, 4, 0)
+
+				-- Teleport player
+				root.CFrame = CFrame.new(TELEPORT_POSITION)
 			end
 		end
 
 		task.wait(0.1)
 	end
 end)
+```
