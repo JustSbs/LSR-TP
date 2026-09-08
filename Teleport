@@ -4,148 +4,179 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Remove previous version
+local TARGET_POSITION = Vector3.new(999, -58, 1170)
+local TELEPORT_INTERVAL = 0.1
+
+-- Remove previous copy if this script is run again
 local oldGui = playerGui:FindFirstChild("TeleportGui")
 if oldGui then
 	oldGui:Destroy()
 end
 
--- Remove previous platform
-local oldPlatform = workspace:FindFirstChild("TeleportPlatform_" .. player.UserId)
-if oldPlatform then
-	oldPlatform:Destroy()
-end
+local teleporting = true
 
-local teleporting = false
-local minimized = false
-
-local TARGET = Vector3.new(11649, -314, 2100)
-
--- Platform
-local platform = Instance.new("Part")
-platform.Name = "TeleportPlatform_" .. player.UserId
-platform.Size = Vector3.new(12, 1, 12)
-platform.Anchored = true
-platform.CanCollide = true
-platform.Position = TARGET - Vector3.new(0, 3.5, 0)
-platform.Parent = workspace
-
--- GUI
+--// GUI
 local gui = Instance.new("ScreenGui")
 gui.Name = "TeleportGui"
 gui.ResetOnSpawn = false
 gui.Parent = playerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 240, 0, 120)
-frame.Position = UDim2.new(0.5, -120, 0.5, -60)
+frame.Name = "MainFrame"
+frame.Size = UDim2.fromOffset(250, 140)
+frame.Position = UDim2.new(0.5, -125, 0.2, 0)
 frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 frame.BorderSizePixel = 0
 frame.Parent = gui
 
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+local frameCorner = Instance.new("UICorner")
+frameCorner.CornerRadius = UDim.new(0, 8)
+frameCorner.Parent = frame
 
--- Title
+--// Title / Drag Area
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -70, 0, 35)
-title.Position = UDim2.new(0, 10, 0, 0)
+title.Size = UDim2.new(1, -75, 0, 35)
+title.Position = UDim2.fromOffset(10, 5)
 title.BackgroundTransparency = 1
 title.Text = "Teleport"
 title.TextColor3 = Color3.new(1, 1, 1)
-title.TextSize = 20
-title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.Font = Enum.Font.SourceSansBold
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = frame
 
--- Minimize
+--// Minimize Button
 local minimize = Instance.new("TextButton")
-minimize.Size = UDim2.new(0, 30, 0, 30)
-minimize.Position = UDim2.new(1, -65, 0, 3)
-minimize.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-minimize.Text = "−"
+minimize.Size = UDim2.fromOffset(30, 30)
+minimize.Position = UDim2.new(1, -70, 0, 5)
+minimize.BackgroundTransparency = 1
+minimize.Text = "-"
 minimize.TextColor3 = Color3.new(1, 1, 1)
 minimize.TextSize = 20
-minimize.Font = Enum.Font.GothamBold
+minimize.Font = Enum.Font.SourceSansBold
 minimize.Parent = frame
 
-Instance.new("UICorner", minimize).CornerRadius = UDim.new(0, 7)
-
--- Close
+--// Close Button
 local close = Instance.new("TextButton")
-close.Size = UDim2.new(0, 30, 0, 30)
-close.Position = UDim2.new(1, -32, 0, 3)
-close.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+close.Size = UDim2.fromOffset(30, 30)
+close.Position = UDim2.new(1, -35, 0, 5)
+close.BackgroundTransparency = 1
 close.Text = "X"
 close.TextColor3 = Color3.new(1, 1, 1)
-close.TextSize = 16
-close.Font = Enum.Font.GothamBold
+close.TextSize = 18
+close.Font = Enum.Font.SourceSansBold
 close.Parent = frame
 
-Instance.new("UICorner", close).CornerRadius = UDim.new(0, 7)
+--// Toggle Switch
+local toggleFrame = Instance.new("Frame")
+toggleFrame.Name = "Toggle"
+toggleFrame.Size = UDim2.fromOffset(55, 30)
+toggleFrame.Position = UDim2.fromOffset(20, 52)
+toggleFrame.BackgroundColor3 = Color3.fromRGB(70, 170, 90)
+toggleFrame.BorderSizePixel = 0
+toggleFrame.Parent = frame
 
--- Toggle
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 180, 0, 45)
-button.Position = UDim2.new(0.5, -90, 0, 55)
-button.BackgroundColor3 = Color3.fromRGB(170, 50, 50)
-button.Text = "OFF"
-button.TextColor3 = Color3.new(1, 1, 1)
-button.TextSize = 18
-button.Font = Enum.Font.GothamBold
-button.Parent = frame
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(1, 0)
+toggleCorner.Parent = toggleFrame
 
-Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
+local knob = Instance.new("Frame")
+knob.Name = "Knob"
+knob.Size = UDim2.fromOffset(24, 24)
+knob.Position = UDim2.fromOffset(28, 3)
+knob.BackgroundColor3 = Color3.new(1, 1, 1)
+knob.BorderSizePixel = 0
+knob.Parent = toggleFrame
 
-button.MouseButton1Click:Connect(function()
+local knobCorner = Instance.new("UICorner")
+knobCorner.CornerRadius = UDim.new(1, 0)
+knobCorner.Parent = knob
+
+local toggleClick = Instance.new("TextButton")
+toggleClick.Size = UDim2.fromScale(1, 1)
+toggleClick.BackgroundTransparency = 1
+toggleClick.Text = ""
+toggleClick.Parent = toggleFrame
+
+local toggleLabel = Instance.new("TextLabel")
+toggleLabel.Size = UDim2.fromOffset(150, 30)
+toggleLabel.Position = UDim2.fromOffset(65, 0)
+toggleLabel.BackgroundTransparency = 1
+toggleLabel.Text = "Teleport: ON"
+toggleLabel.TextColor3 = Color3.new(1, 1, 1)
+toggleLabel.TextSize = 16
+toggleLabel.Font = Enum.Font.SourceSans
+toggleLabel.TextXAlignment = Enum.TextXAlignment.Left
+toggleLabel.Parent = toggleFrame
+
+--// Status
+local status = Instance.new("TextLabel")
+status.Size = UDim2.new(1, -20, 0, 30)
+status.Position = UDim2.fromOffset(10, 95)
+status.BackgroundTransparency = 1
+status.Text = "Teleporting..."
+status.TextColor3 = Color3.fromRGB(100, 255, 100)
+status.TextSize = 15
+status.Font = Enum.Font.SourceSans
+status.Parent = frame
+
+--// Toggle Function
+toggleClick.MouseButton1Click:Connect(function()
 	teleporting = not teleporting
 
 	if teleporting then
-		button.Text = "ON"
-		button.BackgroundColor3 = Color3.fromRGB(50, 170, 80)
+		toggleFrame.BackgroundColor3 = Color3.fromRGB(70, 170, 90)
+		knob.Position = UDim2.fromOffset(28, 3)
+		toggleLabel.Text = "Teleport: ON"
+
+		status.Text = "Teleporting..."
+		status.TextColor3 = Color3.fromRGB(100, 255, 100)
 	else
-		button.Text = "OFF"
-		button.BackgroundColor3 = Color3.fromRGB(170, 50, 50)
+		toggleFrame.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+		knob.Position = UDim2.fromOffset(3, 3)
+		toggleLabel.Text = "Teleport: OFF"
+
+		status.Text = "Teleport paused"
+		status.TextColor3 = Color3.fromRGB(255, 100, 100)
 	end
 end)
 
--- Minimize / restore
-minimize.MouseButton1Click:Connect(function()
-	minimized = not minimized
-
-	if minimized then
-		frame.Size = UDim2.new(0, 240, 0, 38)
-		minimize.Text = "+"
-		button.Visible = false
-	else
-		frame.Size = UDim2.new(0, 240, 0, 120)
-		minimize.Text = "−"
-		button.Visible = true
-	end
-end)
-
--- Close
+--// Close
 close.MouseButton1Click:Connect(function()
 	teleporting = false
-
-	if platform then
-		platform:Destroy()
-	end
-
 	gui:Destroy()
 end)
 
--- Dragging
+--// Minimize
+local minimized = false
+
+minimize.MouseButton1Click:Connect(function()
+	minimized = not minimized
+
+	toggleFrame.Visible = not minimized
+	status.Visible = not minimized
+
+	if minimized then
+		frame.Size = UDim2.fromOffset(250, 40)
+		minimize.Text = "+"
+	else
+		frame.Size = UDim2.fromOffset(250, 140)
+		minimize.Text = "-"
+	end
+end)
+
+--// Draggable
 local dragging = false
 local dragStart
-local startPos
+local startPosition
 
-frame.InputBegan:Connect(function(input)
+title.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1
 		or input.UserInputType == Enum.UserInputType.Touch then
 
 		dragging = true
 		dragStart = input.Position
-		startPos = frame.Position
+		startPosition = frame.Position
 
 		input.Changed:Connect(function()
 			if input.UserInputState == Enum.UserInputState.End then
@@ -156,25 +187,28 @@ frame.InputBegan:Connect(function(input)
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-	if dragging and (
-		input.UserInputType == Enum.UserInputType.MouseMovement
-		or input.UserInputType == Enum.UserInputType.Touch
-	) then
+	if not dragging then
+		return
+	end
+
+	if input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch then
 
 		local delta = input.Position - dragStart
 
 		frame.Position = UDim2.new(
-			startPos.X.Scale,
-			startPos.X.Offset + delta.X,
-			startPos.Y.Scale,
-			startPos.Y.Offset + delta.Y
+			startPosition.X.Scale,
+			startPosition.X.Offset + delta.X,
+			startPosition.Y.Scale,
+			startPosition.Y.Offset + delta.Y
 		)
 	end
 end)
 
--- Teleport loop
+--// Continuous Teleport
 task.spawn(function()
 	while gui.Parent do
+
 		if teleporting then
 			local character = player.Character
 
@@ -182,11 +216,11 @@ task.spawn(function()
 				local root = character:FindFirstChild("HumanoidRootPart")
 
 				if root then
-					root.CFrame = CFrame.new(TARGET)
+					root.CFrame = CFrame.new(TARGET_POSITION)
 				end
 			end
 		end
 
-		task.wait(0.1)
+		task.wait(TELEPORT_INTERVAL)
 	end
 end)
