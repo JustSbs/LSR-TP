@@ -19,7 +19,7 @@ end
 local teleporting = false
 local minimized = false
 
-local TARGET = Vector3.new(8787, -605, 1954)
+local TARGET = Vector3.new(11649, -314, 2100)
 
 -- Platform
 local platform = Instance.new("Part")
