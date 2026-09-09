@@ -6,6 +6,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 
 local TARGET_POSITION = Vector3.new(999, -58, 1170)
 local TELEPORT_INTERVAL = 0.1
+local JUMP_INTERVAL = 2 -- Jump every 60 seconds
 
 -- Remove previous copy if this script is run again
 local oldGui = playerGui:FindFirstChild("TeleportGui")
@@ -128,14 +129,12 @@ toggleClick.MouseButton1Click:Connect(function()
 		toggleFrame.BackgroundColor3 = Color3.fromRGB(70, 170, 90)
 		knob.Position = UDim2.fromOffset(28, 3)
 		toggleLabel.Text = "Teleport: ON"
-
 		status.Text = "Teleporting..."
 		status.TextColor3 = Color3.fromRGB(100, 255, 100)
 	else
 		toggleFrame.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 		knob.Position = UDim2.fromOffset(3, 3)
 		toggleLabel.Text = "Teleport: OFF"
-
 		status.Text = "Teleport paused"
 		status.TextColor3 = Color3.fromRGB(255, 100, 100)
 	end
@@ -208,7 +207,6 @@ end)
 --// Continuous Teleport
 task.spawn(function()
 	while gui.Parent do
-
 		if teleporting then
 			local character = player.Character
 
@@ -222,5 +220,25 @@ task.spawn(function()
 		end
 
 		task.wait(TELEPORT_INTERVAL)
+	end
+end)
+
+--// Jump immediately, then every 60 seconds
+task.spawn(function()
+	while gui.Parent do
+		if teleporting then
+			local character = player.Character
+
+			if character then
+				local humanoid = character:FindFirstChildOfClass("Humanoid")
+
+				if humanoid and humanoid.Health > 0 then
+					humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+					humanoid.Jump = true
+				end
+			end
+		end
+
+		task.wait(JUMP_INTERVAL)
 	end
 end)
