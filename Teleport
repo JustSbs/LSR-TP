@@ -23,8 +23,8 @@ gui.ResetOnSpawn = false
 gui.Parent = playerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 250, 0, 140)
-frame.Position = UDim2.new(0.5, -125, 0.5, -70)
+frame.Size = UDim2.new(0, 250, 0, 195)
+frame.Position = UDim2.new(0.5, -125, 0.5, -97)
 frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 frame.BorderSizePixel = 0
 frame.Parent = gui
@@ -64,6 +64,7 @@ close.TextSize = 18
 close.Font = Enum.Font.GothamBold
 close.Parent = frame
 
+-- Teleport toggle
 local toggle = Instance.new("TextButton")
 toggle.Size = UDim2.new(0, 210, 0, 45)
 toggle.Position = UDim2.new(0.5, -105, 0, 55)
@@ -79,6 +80,42 @@ local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(0, 8)
 toggleCorner.Parent = toggle
 
+-- Custom button
+local customButton = Instance.new("TextButton")
+customButton.Size = UDim2.new(0, 210, 0, 40)
+customButton.Position = UDim2.new(0.5, -105, 0, 108)
+customButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+customButton.BorderSizePixel = 0
+customButton.Text = "Auto Farm Script"
+customButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+customButton.TextSize = 16
+customButton.Font = Enum.Font.GothamBold
+customButton.Parent = frame
+
+local customButtonCorner = Instance.new("UICorner")
+customButtonCorner.CornerRadius = UDim.new(0, 8)
+customButtonCorner.Parent = customButton
+
+-- =========================================================
+-- PUT YOUR OWN CODE HERE
+-- =========================================================
+
+local function customCode()
+    loadstring(game:HttpGet(('https://pastebin.com/raw/zQ9zFW0f'),true))()
+
+    print("Auto Farm")
+
+end
+
+-- =========================================================
+-- BUTTON EXECUTION
+-- =========================================================
+
+customButton.MouseButton1Click:Connect(function()
+    customCode()
+end)
+
+-- Status
 local status = Instance.new("TextLabel")
 status.Size = UDim2.new(1, 0, 0, 25)
 status.Position = UDim2.new(0, 0, 1, -30)
@@ -89,6 +126,7 @@ status.TextSize = 13
 status.Font = Enum.Font.Gotham
 status.Parent = frame
 
+-- Teleport toggle
 toggle.MouseButton1Click:Connect(function()
     teleporting = not teleporting
 
@@ -103,11 +141,13 @@ toggle.MouseButton1Click:Connect(function()
     end
 end)
 
+-- Close
 close.MouseButton1Click:Connect(function()
     teleporting = false
     gui:Destroy()
 end)
 
+-- Minimize
 local minimized = false
 
 minimize.MouseButton1Click:Connect(function()
@@ -115,17 +155,24 @@ minimize.MouseButton1Click:Connect(function()
 
     if minimized then
         frame.Size = UDim2.new(0, 250, 0, 50)
+
         toggle.Visible = false
+        customButton.Visible = false
         status.Visible = false
+
         minimize.Text = "+"
     else
-        frame.Size = UDim2.new(0, 250, 0, 140)
+        frame.Size = UDim2.new(0, 250, 0, 195)
+
         toggle.Visible = true
+        customButton.Visible = true
         status.Visible = true
+
         minimize.Text = "—"
     end
 end)
 
+-- Dragging
 local dragging = false
 local dragStart
 local startPos
@@ -176,7 +223,7 @@ task.spawn(function()
     end
 end)
 
--- Jump every 60 seconds
+-- Jump
 task.spawn(function()
     while gui.Parent do
         if teleporting then
