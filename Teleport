@@ -10,7 +10,7 @@ local TELEPORT_INTERVAL = 0.1
 local JUMP_INTERVAL = 5
 local MOVEMENT_INTERVAL = 2
 
-local oldGui = playerGui:FindFirstChild("TeleportGui")
+local oldGui = playerGui:FindFirstChild("SbsScriptGui")
 if oldGui then
     oldGui:Destroy()
 end
@@ -18,7 +18,7 @@ end
 local teleporting = true
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "Tp Script - By Sbs"
+gui.Name = "SbsScriptGui"
 gui.ResetOnSpawn = false
 gui.Parent = playerGui
 
@@ -37,7 +37,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -80, 0, 40)
 title.Position = UDim2.new(0, 15, 0, 5)
 title.BackgroundTransparency = 1
-title.Text = "Teleport"
+title.Text = "Sbs Script - By Sbs"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 20
 title.Font = Enum.Font.GothamBold
@@ -101,10 +101,9 @@ customButtonCorner.Parent = customButton
 -- =========================================================
 
 local function customCode()
-    loadstring(game:HttpGet(('https://pastebin.com/raw/zQ9zFW0f'),true))()
+    loadstring(game:HttpGet(('https://pastebin.com/raw/zQ9zFW0f'), true))()
 
     print("Auto Farm")
-
 end
 
 -- =========================================================
