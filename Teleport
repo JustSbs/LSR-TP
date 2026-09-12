@@ -18,7 +18,7 @@ end
 local teleporting = true
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "TeleportGui"
+gui.Name = "Tp Script - By Sbs"
 gui.ResetOnSpawn = false
 gui.Parent = playerGui
 
