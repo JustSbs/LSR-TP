@@ -96,9 +96,7 @@ local customButtonCorner = Instance.new("UICorner")
 customButtonCorner.CornerRadius = UDim.new(0, 8)
 customButtonCorner.Parent = customButton
 
--- =========================================================
 -- PUT YOUR OWN CODE HERE
--- =========================================================
 
 local function customCode()
     loadstring(game:HttpGet(('https://pastebin.com/raw/zQ9zFW0f'), true))()
@@ -106,9 +104,7 @@ local function customCode()
     print("Auto Farm")
 end
 
--- =========================================================
 -- BUTTON EXECUTION
--- =========================================================
 
 customButton.MouseButton1Click:Connect(function()
     customCode()
@@ -132,11 +128,11 @@ toggle.MouseButton1Click:Connect(function()
     if teleporting then
         toggle.BackgroundColor3 = Color3.fromRGB(60, 180, 75)
         toggle.Text = "Teleport: ON"
-        status.Text = "Teleporting..."
+        status.Text = "Teleporting Humanoid.root"
     else
         toggle.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
         toggle.Text = "Teleport: OFF"
-        status.Text = "Teleport paused"
+        status.Text = "No longer teleporting Humanoid.root"
     end
 end)
 
