@@ -506,7 +506,7 @@ local SellToggle = createToggle(
 )
 
 local UltimateToggle = createToggle(
-    "Ultimate Class",
+    "Auto Buy (1ST ULTIMATE CLASS)",
     settings.ultimateClass,
     function(value)
         setSetting("ultimateClass", value)
