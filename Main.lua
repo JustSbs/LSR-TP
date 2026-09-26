@@ -1,93 +1,150 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local HttpService = game:GetService("HttpService")
 
 local player = Players.LocalPlayer
 
 --// CONFIG
+
 local TELEPORT_INTERVAL = 0.1
 local JUMP_INTERVAL = 5
 local MOVEMENT_INTERVAL = 2
 local SELL_INTERVAL = 1800
-local BUY_INTERVAL = 300
+local BUY_INTERVAL = 15
 
 local TELEPORT_POSITION = Vector3.new(14992, -55, 938)
 
 --// FILE SETTINGS
-local SETTINGS_FILE = "LSR-TP"
+
+local SETTINGS_FILE = "LSR-TP_Settings.txt"
 
 local defaultSettings = {
     teleport = false,
     autoSell = false,
     ultimateClass = false,
-    position = {
-        X = 500,
-        Y = 300
-    },
-    miniPosition = {
-        X = 25,
-        Y = 300
-    }
+    minimized = false,
+
+    positionX = 500,
+    positionY = 300,
+
+    miniPositionX = 30,
+    miniPositionY = 300
 }
 
-local settings = table.clone(defaultSettings)
+local settings = {}
 
-local function loadSettings()
-    if not (isfile and readfile and isfile(SETTINGS_FILE)) then
-        return
-    end
-
-    local success, data = pcall(function()
-        return HttpService:JSONDecode(readfile(SETTINGS_FILE))
-    end)
-
-    if success and type(data) == "table" then
-        for key, value in pairs(data) do
-            settings[key] = value
-        end
-    end
+for key, value in pairs(defaultSettings) do
+    settings[key] = value
 end
+
+--// Save Settings
 
 local function saveSettings()
     if not writefile then
         return
     end
 
+    local content = table.concat({
+        "teleport=" .. tostring(settings.teleport),
+        "autoSell=" .. tostring(settings.autoSell),
+        "ultimateClass=" .. tostring(settings.ultimateClass),
+        "minimized=" .. tostring(settings.minimized),
+        "positionX=" .. tostring(settings.positionX),
+        "positionY=" .. tostring(settings.positionY),
+        "miniPositionX=" .. tostring(settings.miniPositionX),
+        "miniPositionY=" .. tostring(settings.miniPositionY)
+    }, "\n")
+
     pcall(function()
-        writefile(SETTINGS_FILE, HttpService:JSONEncode(settings))
+        writefile(SETTINGS_FILE, content)
     end)
+end
+
+--// Load Settings
+
+local function loadSettings()
+    if not isfile or not readfile then
+        return
+    end
+
+    if not isfile(SETTINGS_FILE) then
+        saveSettings()
+        return
+    end
+
+    local success, content = pcall(readfile, SETTINGS_FILE)
+
+    if not success or not content then
+        return
+    end
+
+    for line in content:gmatch("[^\r\n]+") do
+        local key, value = line:match("^([^=]+)=(.*)$")
+
+        if key and value then
+            key = key:gsub("^%s+", ""):gsub("%s+$", "")
+            value = value:gsub("^%s+", ""):gsub("%s+$", "")
+
+            if defaultSettings[key] ~= nil then
+                if type(defaultSettings[key]) == "boolean" then
+                    if value == "true" then
+                        settings[key] = true
+                    elseif value == "false" then
+                        settings[key] = false
+                    end
+                elseif type(defaultSettings[key]) == "number" then
+                    local number = tonumber(value)
+
+                    if number then
+                        settings[key] = number
+                    end
+                else
+                    settings[key] = value
+                end
+            end
+        end
+    end
+end
+
+--// Change Setting + Immediately Save
+
+local function setSetting(key, value)
+    if settings[key] ~= value then
+        settings[key] = value
+        saveSettings()
+    end
 end
 
 loadSettings()
 
---// REMOVE OLD GUI
+--// GUI
+
 local oldGui = game.CoreGui:FindFirstChild("GudScriptUI")
+
 if oldGui then
     oldGui:Destroy()
 end
 
---// SCREEN GUI
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "GudScriptUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = game.CoreGui
 
---// MAIN UI
+--// Main
+
 local Main = Instance.new("Frame")
 Main.Name = "Main"
 Main.Size = UDim2.new(0, 390, 0, 290)
 Main.Position = UDim2.new(
     0,
-    settings.position.X or 500,
+    settings.positionX or 500,
     0,
-    settings.position.Y or 300
+    settings.positionY or 300
 )
 Main.BackgroundColor3 = Color3.fromRGB(15, 15, 19)
 Main.BorderSizePixel = 0
 Main.Parent = ScreenGui
-Main.ZIndex = 2
 
 local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 14)
@@ -96,10 +153,11 @@ MainCorner.Parent = Main
 local MainStroke = Instance.new("UIStroke")
 MainStroke.Color = Color3.fromRGB(55, 55, 65)
 MainStroke.Thickness = 1
-MainStroke.Transparency = 0.2
+MainStroke.Transparency = 0.25
 MainStroke.Parent = Main
 
---// SHADOW
+--// Shadow
+
 local Shadow = Instance.new("ImageLabel")
 Shadow.Name = "Shadow"
 Shadow.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -111,10 +169,13 @@ Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
 Shadow.ImageTransparency = 0.45
 Shadow.ScaleType = Enum.ScaleType.Slice
 Shadow.SliceCenter = Rect.new(49, 49, 450, 450)
-Shadow.ZIndex = 1
+Shadow.ZIndex = 0
 Shadow.Parent = Main
 
---// HEADER
+Main.ZIndex = 2
+
+--// Header
+
 local Header = Instance.new("Frame")
 Header.Size = UDim2.new(1, 0, 0, 58)
 Header.BackgroundTransparency = 1
@@ -123,7 +184,7 @@ Header.ZIndex = 3
 
 local Title = Instance.new("TextLabel")
 Title.Position = UDim2.new(0, 20, 0, 9)
-Title.Size = UDim2.new(1, -115, 0, 25)
+Title.Size = UDim2.new(1, -100, 0, 25)
 Title.BackgroundTransparency = 1
 Title.Text = "Gud script - By @justsbsxd"
 Title.TextColor3 = Color3.fromRGB(245, 245, 250)
@@ -141,46 +202,8 @@ Line.BorderSizePixel = 0
 Line.Parent = Header
 Line.ZIndex = 4
 
---// MINIMIZE BUTTON
-local Minimize = Instance.new("TextButton")
-Minimize.Position = UDim2.new(1, -82, 0, 12)
-Minimize.Size = UDim2.new(0, 30, 0, 30)
-Minimize.BackgroundColor3 = Color3.fromRGB(30, 30, 37)
-Minimize.Text = "−"
-Minimize.TextColor3 = Color3.fromRGB(180, 180, 190)
-Minimize.TextSize = 18
-Minimize.Font = Enum.Font.GothamMedium
-Minimize.AutoButtonColor = false
-Minimize.Parent = Header
-Minimize.ZIndex = 5
+--// Close
 
-local MinCorner = Instance.new("UICorner")
-MinCorner.CornerRadius = UDim.new(0, 8)
-MinCorner.Parent = Minimize
-
-Minimize.MouseEnter:Connect(function()
-    TweenService:Create(
-        Minimize,
-        TweenInfo.new(0.15),
-        {
-            BackgroundColor3 = Color3.fromRGB(45, 45, 55),
-            TextColor3 = Color3.fromRGB(255, 255, 255)
-        }
-    ):Play()
-end)
-
-Minimize.MouseLeave:Connect(function()
-    TweenService:Create(
-        Minimize,
-        TweenInfo.new(0.15),
-        {
-            BackgroundColor3 = Color3.fromRGB(30, 30, 37),
-            TextColor3 = Color3.fromRGB(180, 180, 190)
-        }
-    ):Play()
-end)
-
---// CLOSE BUTTON
 local Close = Instance.new("TextButton")
 Close.Position = UDim2.new(1, -45, 0, 12)
 Close.Size = UDim2.new(0, 30, 0, 30)
@@ -220,8 +243,9 @@ Close.MouseLeave:Connect(function()
 end)
 
 Close.MouseButton1Click:Connect(function()
-    settings.position.X = Main.AbsolutePosition.X
-    settings.position.Y = Main.AbsolutePosition.Y
+    settings.positionX = Main.AbsolutePosition.X
+    settings.positionY = Main.AbsolutePosition.Y
+
     saveSettings()
 
     TweenService:Create(
@@ -233,10 +257,84 @@ Close.MouseButton1Click:Connect(function()
     ):Play()
 
     task.wait(0.2)
+
     ScreenGui:Destroy()
 end)
 
---// CONTENT
+--// Minimize Button
+
+local Minimize = Instance.new("TextButton")
+Minimize.Position = UDim2.new(1, -82, 0, 12)
+Minimize.Size = UDim2.new(0, 30, 0, 30)
+Minimize.BackgroundColor3 = Color3.fromRGB(30, 30, 37)
+Minimize.Text = "−"
+Minimize.TextColor3 = Color3.fromRGB(180, 180, 190)
+Minimize.TextSize = 18
+Minimize.Font = Enum.Font.GothamMedium
+Minimize.AutoButtonColor = false
+Minimize.Parent = Header
+Minimize.ZIndex = 5
+
+local MinCorner = Instance.new("UICorner")
+MinCorner.CornerRadius = UDim.new(0, 8)
+MinCorner.Parent = Minimize
+
+--// Mini Button
+
+local MiniButton = Instance.new("TextButton")
+MiniButton.Name = "MiniButton"
+MiniButton.Size = UDim2.new(0, 50, 0, 50)
+MiniButton.Position = UDim2.new(
+    0,
+    settings.miniPositionX or 30,
+    0,
+    settings.miniPositionY or 300
+)
+MiniButton.BackgroundColor3 = Color3.fromRGB(15, 15, 19)
+MiniButton.BorderSizePixel = 0
+MiniButton.Text = "S"
+MiniButton.TextColor3 = Color3.fromRGB(245, 245, 250)
+MiniButton.TextSize = 20
+MiniButton.Font = Enum.Font.GothamBold
+MiniButton.Visible = false
+MiniButton.AutoButtonColor = false
+MiniButton.Parent = ScreenGui
+MiniButton.ZIndex = 20
+
+local MiniCorner = Instance.new("UICorner")
+MiniCorner.CornerRadius = UDim.new(0, 12)
+MiniCorner.Parent = MiniButton
+
+local MiniStroke = Instance.new("UIStroke")
+MiniStroke.Color = Color3.fromRGB(55, 55, 65)
+MiniStroke.Thickness = 1
+MiniStroke.Transparency = 0.1
+MiniStroke.Parent = MiniButton
+
+--// Mini Button Hover
+
+MiniButton.MouseEnter:Connect(function()
+    TweenService:Create(
+        MiniButton,
+        TweenInfo.new(0.15),
+        {
+            BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+        }
+    ):Play()
+end)
+
+MiniButton.MouseLeave:Connect(function()
+    TweenService:Create(
+        MiniButton,
+        TweenInfo.new(0.15),
+        {
+            BackgroundColor3 = Color3.fromRGB(15, 15, 19)
+        }
+    ):Play()
+end)
+
+--// Content
+
 local Content = Instance.new("Frame")
 Content.Position = UDim2.new(0, 15, 0, 68)
 Content.Size = UDim2.new(1, -30, 1, -83)
@@ -249,9 +347,9 @@ Layout.Padding = UDim.new(0, 10)
 Layout.SortOrder = Enum.SortOrder.LayoutOrder
 Layout.Parent = Content
 
---// TOGGLE CREATOR
-local function createToggle(text, defaultValue, callback)
+--// Toggle Creator
 
+local function createToggle(text, defaultValue, callback)
     local Button = Instance.new("TextButton")
     Button.Size = UDim2.new(1, 0, 0, 52)
     Button.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
@@ -310,7 +408,6 @@ local function createToggle(text, defaultValue, callback)
     local enabled = defaultValue
 
     local function update(animated)
-
         local switchColor
         local circleColor
         local circlePosition
@@ -350,7 +447,6 @@ local function createToggle(text, defaultValue, callback)
     end
 
     Button.MouseEnter:Connect(function()
-
         TweenService:Create(
             Button,
             TweenInfo.new(0.15),
@@ -361,7 +457,6 @@ local function createToggle(text, defaultValue, callback)
     end)
 
     Button.MouseLeave:Connect(function()
-
         TweenService:Create(
             Button,
             TweenInfo.new(0.15),
@@ -372,7 +467,6 @@ local function createToggle(text, defaultValue, callback)
     end)
 
     Button.MouseButton1Click:Connect(function()
-
         enabled = not enabled
 
         update(true)
@@ -393,14 +487,13 @@ local function createToggle(text, defaultValue, callback)
     }
 end
 
---// TOGGLES
+--// Toggles
+
 local TeleportToggle = createToggle(
     "Teleport",
     settings.teleport,
     function(value)
-
-        settings.teleport = value
-        saveSettings()
+        setSetting("teleport", value)
     end
 )
 
@@ -408,9 +501,7 @@ local SellToggle = createToggle(
     "Auto Sell",
     settings.autoSell,
     function(value)
-
-        settings.autoSell = value
-        saveSettings()
+        setSetting("autoSell", value)
     end
 )
 
@@ -418,89 +509,28 @@ local UltimateToggle = createToggle(
     "Ultimate Class",
     settings.ultimateClass,
     function(value)
-
-        settings.ultimateClass = value
-        saveSettings()
+        setSetting("ultimateClass", value)
     end
 )
 
---// MINI BUTTON
-local MiniButton = Instance.new("TextButton")
-MiniButton.Name = "MiniButton"
-MiniButton.Size = UDim2.new(0, 48, 0, 48)
-MiniButton.Position = UDim2.new(
-    0,
-    settings.miniPosition.X or 25,
-    0,
-    settings.miniPosition.Y or 300
-)
-MiniButton.BackgroundColor3 = Color3.fromRGB(18, 18, 23)
-MiniButton.BorderSizePixel = 0
-MiniButton.Text = "G"
-MiniButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-MiniButton.TextSize = 18
-MiniButton.Font = Enum.Font.GothamBold
-MiniButton.AutoButtonColor = false
-MiniButton.Visible = false
-MiniButton.Parent = ScreenGui
-MiniButton.ZIndex = 20
+--// Main GUI Dragging
 
-local MiniCorner = Instance.new("UICorner")
-MiniCorner.CornerRadius = UDim.new(0, 12)
-MiniCorner.Parent = MiniButton
-
-local MiniStroke = Instance.new("UIStroke")
-MiniStroke.Color = Color3.fromRGB(75, 115, 255)
-MiniStroke.Thickness = 1.5
-MiniStroke.Transparency = 0.15
-MiniStroke.Parent = MiniButton
-
---// MINI BUTTON HOVER
-MiniButton.MouseEnter:Connect(function()
-
-    TweenService:Create(
-        MiniButton,
-        TweenInfo.new(0.15, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
-        {
-            Size = UDim2.new(0, 53, 0, 53),
-            BackgroundColor3 = Color3.fromRGB(28, 28, 36)
-        }
-    ):Play()
-end)
-
-MiniButton.MouseLeave:Connect(function()
-
-    TweenService:Create(
-        MiniButton,
-        TweenInfo.new(0.15, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
-        {
-            Size = UDim2.new(0, 48, 0, 48),
-            BackgroundColor3 = Color3.fromRGB(18, 18, 23)
-        }
-    ):Play()
-end)
-
---// DRAG MAIN UI
-local draggingMain = false
-local dragStartMain
-local startPosMain
+local dragging = false
+local dragStart
+local startPos
 
 Header.InputBegan:Connect(function(input)
-
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
-
-        draggingMain = true
-        dragStartMain = input.Position
-        startPosMain = Main.Position
+        dragging = true
+        dragStart = input.Position
+        startPos = Main.Position
 
         input.Changed:Connect(function()
-
             if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
 
-                draggingMain = false
-
-                settings.position.X = Main.AbsolutePosition.X
-                settings.position.Y = Main.AbsolutePosition.Y
+                settings.positionX = Main.AbsolutePosition.X
+                settings.positionY = Main.AbsolutePosition.Y
 
                 saveSettings()
             end
@@ -509,41 +539,36 @@ Header.InputBegan:Connect(function(input)
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-
-    if draggingMain and input.UserInputType == Enum.UserInputType.MouseMovement then
-
-        local delta = input.Position - dragStartMain
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
 
         Main.Position = UDim2.new(
             0,
-            startPosMain.X.Offset + delta.X,
+            startPos.X.Offset + delta.X,
             0,
-            startPosMain.Y.Offset + delta.Y
+            startPos.Y.Offset + delta.Y
         )
     end
 end)
 
---// DRAG MINI BUTTON
-local draggingMini = false
-local dragStartMini
-local startPosMini
+--// Mini Button Dragging
+
+local miniDragging = false
+local miniDragStart
+local miniStartPos
 
 MiniButton.InputBegan:Connect(function(input)
-
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
-
-        draggingMini = true
-        dragStartMini = input.Position
-        startPosMini = MiniButton.Position
+        miniDragging = true
+        miniDragStart = input.Position
+        miniStartPos = MiniButton.Position
 
         input.Changed:Connect(function()
-
             if input.UserInputState == Enum.UserInputState.End then
+                miniDragging = false
 
-                draggingMini = false
-
-                settings.miniPosition.X = MiniButton.AbsolutePosition.X
-                settings.miniPosition.Y = MiniButton.AbsolutePosition.Y
+                settings.miniPositionX = MiniButton.AbsolutePosition.X
+                settings.miniPositionY = MiniButton.AbsolutePosition.Y
 
                 saveSettings()
             end
@@ -552,50 +577,54 @@ MiniButton.InputBegan:Connect(function(input)
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-
-    if draggingMini and input.UserInputType == Enum.UserInputType.MouseMovement then
-
-        local delta = input.Position - dragStartMini
+    if miniDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - miniDragStart
 
         MiniButton.Position = UDim2.new(
             0,
-            startPosMini.X.Offset + delta.X,
+            miniStartPos.X.Offset + delta.X,
             0,
-            startPosMini.Y.Offset + delta.Y
+            miniStartPos.Y.Offset + delta.Y
         )
     end
 end)
 
---// MINIMIZE
+--// Minimize
+
 Minimize.MouseButton1Click:Connect(function()
+    settings.positionX = Main.AbsolutePosition.X
+    settings.positionY = Main.AbsolutePosition.Y
 
-    settings.position.X = Main.AbsolutePosition.X
-    settings.position.Y = Main.AbsolutePosition.Y
-
-    saveSettings()
+    setSetting("minimized", true)
 
     Main.Visible = false
     MiniButton.Visible = true
 end)
 
---// RESTORE
-MiniButton.MouseButton1Click:Connect(function()
+--// Restore From Mini Button
 
-    MiniButton.Visible = false
+MiniButton.MouseButton1Click:Connect(function()
+    setSetting("minimized", false)
+
     Main.Visible = true
+    MiniButton.Visible = false
 end)
 
---// TELEPORT LOOP
+--// Apply Saved Minimized State
+
+if settings.minimized then
+    Main.Visible = false
+    MiniButton.Visible = true
+end
+
+--// Teleport Loop
+
 task.spawn(function()
-
     while ScreenGui.Parent do
-
         if settings.teleport then
-
             local character = player.Character
 
             if character then
-
                 local root = character:FindFirstChild("HumanoidRootPart")
 
                 if root then
@@ -608,17 +637,14 @@ task.spawn(function()
     end
 end)
 
---// JUMP LOOP
+--// Jump Loop
+
 task.spawn(function()
-
     while ScreenGui.Parent do
-
         if settings.teleport then
-
             local character = player.Character
 
             if character then
-
                 local humanoid = character:FindFirstChildOfClass("Humanoid")
 
                 if humanoid then
@@ -631,23 +657,19 @@ task.spawn(function()
     end
 end)
 
---// MOVEMENT LOOP
-task.spawn(function()
+--// Movement Loop
 
+task.spawn(function()
     local direction = 1
 
     while ScreenGui.Parent do
-
         if settings.teleport then
-
             local character = player.Character
 
             if character then
-
                 local humanoid = character:FindFirstChildOfClass("Humanoid")
 
                 if humanoid then
-
                     humanoid:Move(
                         Vector3.new(direction, 0, 0),
                         false
@@ -662,15 +684,12 @@ task.spawn(function()
     end
 end)
 
---// AUTO SELL
+--// Auto Sell
+
 task.spawn(function()
-
     while ScreenGui.Parent do
-
         if settings.autoSell then
-
             pcall(function()
-
                 local Event = game:GetService("ReplicatedStorage").RemoteEvent
 
                 Event:FireServer({
@@ -683,15 +702,12 @@ task.spawn(function()
     end
 end)
 
---// ULTIMATE CLASS
+--// Ultimate Class
+
 task.spawn(function()
-
     while ScreenGui.Parent do
-
         if settings.ultimateClass then
-
             pcall(function()
-
                 local Event = game:GetService("ReplicatedStorage").RemoteEvent
 
                 Event:FireServer({
@@ -707,17 +723,20 @@ task.spawn(function()
     end
 end)
 
---// SAVE ON LEAVE
-game:GetService("Players").PlayerRemoving:Connect(function(leavingPlayer)
+--// Save When Leaving
 
+Players.PlayerRemoving:Connect(function(leavingPlayer)
     if leavingPlayer == player then
+        settings.positionX = Main.AbsolutePosition.X
+        settings.positionY = Main.AbsolutePosition.Y
 
-        settings.position.X = Main.AbsolutePosition.X
-        settings.position.Y = Main.AbsolutePosition.Y
-
-        settings.miniPosition.X = MiniButton.AbsolutePosition.X
-        settings.miniPosition.Y = MiniButton.AbsolutePosition.Y
+        settings.miniPositionX = MiniButton.AbsolutePosition.X
+        settings.miniPositionY = MiniButton.AbsolutePosition.Y
 
         saveSettings()
     end
 end)
+
+--// Initial Save
+
+saveSettings()
