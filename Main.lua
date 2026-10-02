@@ -5,7 +5,6 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 
 --// CONFIG
-
 local TELEPORT_INTERVAL = 0.1
 local JUMP_INTERVAL = 5
 local MOVEMENT_INTERVAL = 2
@@ -15,7 +14,6 @@ local BUY_INTERVAL = 15
 local TELEPORT_POSITION = Vector3.new(14992, -55, 938)
 
 --// FILE SETTINGS
-
 local SETTINGS_FILE = "LSR-TP_Settings.txt"
 
 local defaultSettings = {
@@ -38,7 +36,6 @@ for key, value in pairs(defaultSettings) do
 end
 
 --// Save Settings
-
 local function saveSettings()
     if not writefile then
         return
@@ -61,7 +58,6 @@ local function saveSettings()
 end
 
 --// Load Settings
-
 local function loadSettings()
     if not isfile or not readfile then
         return
@@ -107,7 +103,6 @@ local function loadSettings()
 end
 
 --// Change Setting + Immediately Save
-
 local function setSetting(key, value)
     if settings[key] ~= value then
         settings[key] = value
@@ -118,7 +113,6 @@ end
 loadSettings()
 
 --// GUI
-
 local oldGui = game.CoreGui:FindFirstChild("GudScriptUI")
 
 if oldGui then
@@ -132,19 +126,13 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = game.CoreGui
 
 --// Main
-
 local Main = Instance.new("Frame")
 Main.Name = "Main"
 Main.Size = UDim2.new(0, 390, 0, 290)
-Main.Position = UDim2.new(
-    0,
-    settings.positionX or 500,
-    0,
-    settings.positionY or 300
-)
 Main.BackgroundColor3 = Color3.fromRGB(15, 15, 19)
 Main.BorderSizePixel = 0
 Main.Parent = ScreenGui
+Main.ZIndex = 2
 
 local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 14)
@@ -157,7 +145,6 @@ MainStroke.Transparency = 0.25
 MainStroke.Parent = Main
 
 --// Shadow
-
 local Shadow = Instance.new("ImageLabel")
 Shadow.Name = "Shadow"
 Shadow.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -172,10 +159,7 @@ Shadow.SliceCenter = Rect.new(49, 49, 450, 450)
 Shadow.ZIndex = 0
 Shadow.Parent = Main
 
-Main.ZIndex = 2
-
 --// Header
-
 local Header = Instance.new("Frame")
 Header.Size = UDim2.new(1, 0, 0, 58)
 Header.BackgroundTransparency = 1
@@ -203,7 +187,6 @@ Line.Parent = Header
 Line.ZIndex = 4
 
 --// Close
-
 local Close = Instance.new("TextButton")
 Close.Position = UDim2.new(1, -45, 0, 12)
 Close.Size = UDim2.new(0, 30, 0, 30)
@@ -262,7 +245,6 @@ Close.MouseButton1Click:Connect(function()
 end)
 
 --// Minimize Button
-
 local Minimize = Instance.new("TextButton")
 Minimize.Position = UDim2.new(1, -82, 0, 12)
 Minimize.Size = UDim2.new(0, 30, 0, 30)
@@ -280,16 +262,9 @@ MinCorner.CornerRadius = UDim.new(0, 8)
 MinCorner.Parent = Minimize
 
 --// Mini Button
-
 local MiniButton = Instance.new("TextButton")
 MiniButton.Name = "MiniButton"
 MiniButton.Size = UDim2.new(0, 50, 0, 50)
-MiniButton.Position = UDim2.new(
-    0,
-    settings.miniPositionX or 30,
-    0,
-    settings.miniPositionY or 300
-)
 MiniButton.BackgroundColor3 = Color3.fromRGB(15, 15, 19)
 MiniButton.BorderSizePixel = 0
 MiniButton.Text = "S"
@@ -311,8 +286,106 @@ MiniStroke.Thickness = 1
 MiniStroke.Transparency = 0.1
 MiniStroke.Parent = MiniButton
 
---// Mini Button Hover
+--// Mobile Detection
+local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 
+--// Screen Size Helpers
+local function getViewportSize()
+    return workspace.CurrentCamera.ViewportSize
+end
+
+local function clampMainPosition(x, y)
+    local viewport = getViewportSize()
+
+    local guiWidth = Main.AbsoluteSize.X
+    local guiHeight = Main.AbsoluteSize.Y
+
+    local maxX = math.max(0, viewport.X - guiWidth)
+    local maxY = math.max(0, viewport.Y - guiHeight)
+
+    x = math.clamp(x, 0, maxX)
+    y = math.clamp(y, 0, maxY)
+
+    return x, y
+end
+
+local function clampMiniPosition(x, y)
+    local viewport = getViewportSize()
+
+    local guiWidth = MiniButton.AbsoluteSize.X
+    local guiHeight = MiniButton.AbsoluteSize.Y
+
+    local maxX = math.max(0, viewport.X - guiWidth)
+    local maxY = math.max(0, viewport.Y - guiHeight)
+
+    x = math.clamp(x, 0, maxX)
+    y = math.clamp(y, 0, maxY)
+
+    return x, y
+end
+
+--// Set Initial Position
+task.defer(function()
+    task.wait()
+
+    local viewport = getViewportSize()
+
+    if isMobile then
+        -- Always start centered on mobile
+        local x = math.max(0, (viewport.X - Main.AbsoluteSize.X) / 2)
+        local y = math.max(0, (viewport.Y - Main.AbsoluteSize.Y) / 2)
+
+        Main.Position = UDim2.fromOffset(x, y)
+
+        settings.positionX = x
+        settings.positionY = y
+    else
+        local x, y = clampMainPosition(
+            settings.positionX or 500,
+            settings.positionY or 300
+        )
+
+        Main.Position = UDim2.fromOffset(x, y)
+    end
+
+    local miniX, miniY = clampMiniPosition(
+        settings.miniPositionX or 30,
+        settings.miniPositionY or 300
+    )
+
+    MiniButton.Position = UDim2.fromOffset(miniX, miniY)
+
+    saveSettings()
+end)
+
+--// Keep GUI Inside Screen
+local function keepInsideScreen()
+    if not Main.Parent then
+        return
+    end
+
+    local x, y = clampMainPosition(
+        Main.AbsolutePosition.X,
+        Main.AbsolutePosition.Y
+    )
+
+    Main.Position = UDim2.fromOffset(x, y)
+
+    local miniX, miniY = clampMiniPosition(
+        MiniButton.AbsolutePosition.X,
+        MiniButton.AbsolutePosition.Y
+    )
+
+    MiniButton.Position = UDim2.fromOffset(miniX, miniY)
+end
+
+workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+    task.defer(function()
+        keepInsideScreen()
+    end)
+end)
+
+--// Mini Button Hover
 MiniButton.MouseEnter:Connect(function()
     TweenService:Create(
         MiniButton,
@@ -334,7 +407,6 @@ MiniButton.MouseLeave:Connect(function()
 end)
 
 --// Content
-
 local Content = Instance.new("Frame")
 Content.Position = UDim2.new(0, 15, 0, 68)
 Content.Size = UDim2.new(1, -30, 1, -83)
@@ -348,7 +420,6 @@ Layout.SortOrder = Enum.SortOrder.LayoutOrder
 Layout.Parent = Content
 
 --// Toggle Creator
-
 local function createToggle(text, defaultValue, callback)
     local Button = Instance.new("TextButton")
     Button.Size = UDim2.new(1, 0, 0, 52)
@@ -488,7 +559,6 @@ local function createToggle(text, defaultValue, callback)
 end
 
 --// Toggles
-
 local TeleportToggle = createToggle(
     "Teleport",
     settings.teleport,
@@ -513,84 +583,107 @@ local UltimateToggle = createToggle(
     end
 )
 
---// Main GUI Dragging
+--// Universal Drag Function
+--// Supports BOTH mouse and mobile touch
+local function makeDraggable(object, target, savePosition)
+    local dragging = false
+    local dragStart
+    local startPosition
+    local dragInput
 
-local dragging = false
-local dragStart
-local startPos
+    object.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
 
-Header.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = Main.Position
+            dragging = true
+            dragStart = input.Position
+            startPosition = target.Position
+            dragInput = input
 
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                    dragInput = nil
 
-                settings.positionX = Main.AbsolutePosition.X
-                settings.positionY = Main.AbsolutePosition.Y
+                    local x, y
 
-                saveSettings()
-            end
-        end)
-    end
-end)
+                    if target == Main then
+                        x, y = clampMainPosition(
+                            target.AbsolutePosition.X,
+                            target.AbsolutePosition.Y
+                        )
+                    else
+                        x, y = clampMiniPosition(
+                            target.AbsolutePosition.X,
+                            target.AbsolutePosition.Y
+                        )
+                    end
 
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                    target.Position = UDim2.fromOffset(x, y)
+
+                    savePosition(x, y)
+                end
+            end)
+        end
+    end)
+
+    object.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch then
+
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if not dragging then
+            return
+        end
+
+        if input ~= dragInput
+            and input.UserInputType ~= Enum.UserInputType.MouseMovement
+            and input.UserInputType ~= Enum.UserInputType.Touch then
+            return
+        end
+
         local delta = input.Position - dragStart
 
-        Main.Position = UDim2.new(
-            0,
-            startPos.X.Offset + delta.X,
-            0,
-            startPos.Y.Offset + delta.Y
-        )
+        local newX = startPosition.X.Offset + delta.X
+        local newY = startPosition.Y.Offset + delta.Y
+
+        if target == Main then
+            newX, newY = clampMainPosition(newX, newY)
+        else
+            newX, newY = clampMiniPosition(newX, newY)
+        end
+
+        target.Position = UDim2.fromOffset(newX, newY)
+    end)
+end
+
+--// Main GUI Dragging
+makeDraggable(
+    Header,
+    Main,
+    function(x, y)
+        settings.positionX = x
+        settings.positionY = y
+        saveSettings()
     end
-end)
+)
 
 --// Mini Button Dragging
-
-local miniDragging = false
-local miniDragStart
-local miniStartPos
-
-MiniButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        miniDragging = true
-        miniDragStart = input.Position
-        miniStartPos = MiniButton.Position
-
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                miniDragging = false
-
-                settings.miniPositionX = MiniButton.AbsolutePosition.X
-                settings.miniPositionY = MiniButton.AbsolutePosition.Y
-
-                saveSettings()
-            end
-        end)
+makeDraggable(
+    MiniButton,
+    MiniButton,
+    function(x, y)
+        settings.miniPositionX = x
+        settings.miniPositionY = y
+        saveSettings()
     end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if miniDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local delta = input.Position - miniDragStart
-
-        MiniButton.Position = UDim2.new(
-            0,
-            miniStartPos.X.Offset + delta.X,
-            0,
-            miniStartPos.Y.Offset + delta.Y
-        )
-    end
-end)
+)
 
 --// Minimize
-
 Minimize.MouseButton1Click:Connect(function()
     settings.positionX = Main.AbsolutePosition.X
     settings.positionY = Main.AbsolutePosition.Y
@@ -599,26 +692,37 @@ Minimize.MouseButton1Click:Connect(function()
 
     Main.Visible = false
     MiniButton.Visible = true
+
+    local x, y = clampMiniPosition(
+        settings.miniPositionX or 30,
+        settings.miniPositionY or 300
+    )
+
+    MiniButton.Position = UDim2.fromOffset(x, y)
 end)
 
 --// Restore From Mini Button
-
 MiniButton.MouseButton1Click:Connect(function()
     setSetting("minimized", false)
+
+    local x, y = clampMainPosition(
+        settings.positionX or 500,
+        settings.positionY or 300
+    )
+
+    Main.Position = UDim2.fromOffset(x, y)
 
     Main.Visible = true
     MiniButton.Visible = false
 end)
 
 --// Apply Saved Minimized State
-
 if settings.minimized then
     Main.Visible = false
     MiniButton.Visible = true
 end
 
 --// Teleport Loop
-
 task.spawn(function()
     while ScreenGui.Parent do
         if settings.teleport then
@@ -638,7 +742,6 @@ task.spawn(function()
 end)
 
 --// Jump Loop
-
 task.spawn(function()
     while ScreenGui.Parent do
         if settings.teleport then
@@ -658,7 +761,6 @@ task.spawn(function()
 end)
 
 --// Movement Loop
-
 task.spawn(function()
     local direction = 1
 
@@ -685,7 +787,6 @@ task.spawn(function()
 end)
 
 --// Auto Sell
-
 task.spawn(function()
     while ScreenGui.Parent do
         if settings.autoSell then
@@ -703,7 +804,6 @@ task.spawn(function()
 end)
 
 --// Ultimate Class
-
 task.spawn(function()
     while ScreenGui.Parent do
         if settings.ultimateClass then
@@ -724,7 +824,6 @@ task.spawn(function()
 end)
 
 --// Save When Leaving
-
 Players.PlayerRemoving:Connect(function(leavingPlayer)
     if leavingPlayer == player then
         settings.positionX = Main.AbsolutePosition.X
@@ -738,5 +837,4 @@ Players.PlayerRemoving:Connect(function(leavingPlayer)
 end)
 
 --// Initial Save
-
 saveSettings()
