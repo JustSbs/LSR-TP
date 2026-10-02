@@ -21,7 +21,7 @@ local SETTINGS_FILE = "LSR-TP_Settings.txt"
 local defaultSettings = {
     teleport = false,
     autoSell = false,
-    ultimateClass = false,
+    autoBuy = false,
     minimized = false,
 
     positionX = 0,
@@ -47,7 +47,7 @@ local function saveSettings()
     local content = table.concat({
         "teleport=" .. tostring(settings.teleport),
         "autoSell=" .. tostring(settings.autoSell),
-        "ultimateClass=" .. tostring(settings.ultimateClass),
+        "autoBuy=" .. tostring(settings.autoBuy),
         "minimized=" .. tostring(settings.minimized),
         "positionX=" .. tostring(settings.positionX),
         "positionY=" .. tostring(settings.positionY),
@@ -137,12 +137,11 @@ local Main = Instance.new("Frame")
 Main.Name = "Main"
 Main.Size = UDim2.new(0, 390, 0, 290)
 
---// DEFAULT POSITION IS 0, 0
 Main.Position = UDim2.new(
     0,
-    settings.positionX or 0,
+    settings.positionX or 500,
     0,
-    settings.positionY or 0
+    settings.positionY or 300
 )
 
 Main.BackgroundColor3 = Color3.fromRGB(15, 15, 19)
@@ -290,9 +289,9 @@ MiniButton.Size = UDim2.new(0, 50, 0, 50)
 
 MiniButton.Position = UDim2.new(
     0,
-    settings.miniPositionX or 0,
+    settings.miniPositionX or 30,
     0,
-    settings.miniPositionY or 0
+    settings.miniPositionY or 300
 )
 
 MiniButton.BackgroundColor3 = Color3.fromRGB(15, 15, 19)
@@ -355,8 +354,8 @@ Layout.Parent = Content
 --// Toggle Creator
 
 local function createToggle(text, defaultValue, callback)
-
     local Button = Instance.new("TextButton")
+
     Button.Size = UDim2.new(1, 0, 0, 52)
     Button.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
     Button.BorderSizePixel = 0
@@ -414,7 +413,6 @@ local function createToggle(text, defaultValue, callback)
     local enabled = defaultValue
 
     local function update(animated)
-
         local switchColor
         local circleColor
         local circlePosition
@@ -474,7 +472,6 @@ local function createToggle(text, defaultValue, callback)
     end)
 
     Button.MouseButton1Click:Connect(function()
-
         enabled = not enabled
 
         update(true)
@@ -513,38 +510,29 @@ local SellToggle = createToggle(
     end
 )
 
-local UltimateToggle = createToggle(
-    "Auto Buy (BROKEN)",
-    settings.ultimateClass,
+local AutoBuyToggle = createToggle(
+    "Auto Buy",
+    settings.autoBuy,
     function(value)
-        setSetting("ultimateClass", value)
+        setSetting("autoBuy", value)
     end
 )
 
 --// Main GUI Dragging
---// Supports Mouse + Touch
 
 local dragging = false
 local dragStart
 local startPos
-local dragInput
 
 Header.InputBegan:Connect(function(input)
-
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragging = true
         dragStart = input.Position
         startPos = Main.Position
-        dragInput = input
 
         input.Changed:Connect(function()
-
             if input.UserInputState == Enum.UserInputState.End then
-
                 dragging = false
-                dragInput = nil
 
                 settings.positionX = Main.AbsolutePosition.X
                 settings.positionY = Main.AbsolutePosition.Y
@@ -555,60 +543,34 @@ Header.InputBegan:Connect(function(input)
     end
 end)
 
-Header.InputChanged:Connect(function(input)
-
-    if input.UserInputType == Enum.UserInputType.MouseMovement
-        or input.UserInputType == Enum.UserInputType.Touch then
-
-        dragInput = input
-    end
-end)
-
 UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
 
-    if not dragging then
-        return
+        Main.Position = UDim2.new(
+            0,
+            startPos.X.Offset + delta.X,
+            0,
+            startPos.Y.Offset + delta.Y
+        )
     end
-
-    if input.UserInputType ~= Enum.UserInputType.MouseMovement
-        and input.UserInputType ~= Enum.UserInputType.Touch then
-        return
-    end
-
-    local delta = input.Position - dragStart
-
-    Main.Position = UDim2.new(
-        0,
-        startPos.X.Offset + delta.X,
-        0,
-        startPos.Y.Offset + delta.Y
-    )
 end)
 
 --// Mini Button Dragging
---// Supports Mouse + Touch
 
 local miniDragging = false
 local miniDragStart
 local miniStartPos
-local miniDragInput
 
 MiniButton.InputBegan:Connect(function(input)
-
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
         miniDragging = true
         miniDragStart = input.Position
         miniStartPos = MiniButton.Position
-        miniDragInput = input
 
         input.Changed:Connect(function()
-
             if input.UserInputState == Enum.UserInputState.End then
-
                 miniDragging = false
-                miniDragInput = nil
 
                 settings.miniPositionX = MiniButton.AbsolutePosition.X
                 settings.miniPositionY = MiniButton.AbsolutePosition.Y
@@ -619,40 +581,22 @@ MiniButton.InputBegan:Connect(function(input)
     end
 end)
 
-MiniButton.InputChanged:Connect(function(input)
-
-    if input.UserInputType == Enum.UserInputType.MouseMovement
-        or input.UserInputType == Enum.UserInputType.Touch then
-
-        miniDragInput = input
-    end
-end)
-
 UserInputService.InputChanged:Connect(function(input)
+    if miniDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - miniDragStart
 
-    if not miniDragging then
-        return
+        MiniButton.Position = UDim2.new(
+            0,
+            miniStartPos.X.Offset + delta.X,
+            0,
+            miniStartPos.Y.Offset + delta.Y
+        )
     end
-
-    if input.UserInputType ~= Enum.UserInputType.MouseMovement
-        and input.UserInputType ~= Enum.UserInputType.Touch then
-        return
-    end
-
-    local delta = input.Position - miniDragStart
-
-    MiniButton.Position = UDim2.new(
-        0,
-        miniStartPos.X.Offset + delta.X,
-        0,
-        miniStartPos.Y.Offset + delta.Y
-    )
 end)
 
 --// Minimize
 
 Minimize.MouseButton1Click:Connect(function()
-
     settings.positionX = Main.AbsolutePosition.X
     settings.positionY = Main.AbsolutePosition.Y
 
@@ -665,7 +609,6 @@ end)
 --// Restore From Mini Button
 
 MiniButton.MouseButton1Click:Connect(function()
-
     setSetting("minimized", false)
 
     Main.Visible = true
@@ -682,15 +625,11 @@ end
 --// Teleport Loop
 
 task.spawn(function()
-
     while ScreenGui.Parent do
-
         if settings.teleport then
-
             local character = player.Character
 
             if character then
-
                 local root = character:FindFirstChild("HumanoidRootPart")
 
                 if root then
@@ -706,15 +645,11 @@ end)
 --// Jump Loop
 
 task.spawn(function()
-
     while ScreenGui.Parent do
-
         if settings.teleport then
-
             local character = player.Character
 
             if character then
-
                 local humanoid = character:FindFirstChildOfClass("Humanoid")
 
                 if humanoid then
@@ -730,21 +665,16 @@ end)
 --// Movement Loop
 
 task.spawn(function()
-
     local direction = 1
 
     while ScreenGui.Parent do
-
         if settings.teleport then
-
             local character = player.Character
 
             if character then
-
                 local humanoid = character:FindFirstChildOfClass("Humanoid")
 
                 if humanoid then
-
                     humanoid:Move(
                         Vector3.new(direction, 0, 0),
                         false
@@ -762,13 +692,9 @@ end)
 --// Auto Sell
 
 task.spawn(function()
-
     while ScreenGui.Parent do
-
         if settings.autoSell then
-
             pcall(function()
-
                 local Event = game:GetService("ReplicatedStorage").RemoteEvent
 
                 Event:FireServer({
@@ -781,23 +707,19 @@ task.spawn(function()
     end
 end)
 
---// Ultimate Class
+--// Auto Buy
 
 task.spawn(function()
-
     while ScreenGui.Parent do
-
-        if settings.ultimateClass then
-
+        if settings.autoBuy then
             pcall(function()
-
                 local Event = game:GetService("ReplicatedStorage").RemoteEvent
 
                 Event:FireServer({
                     "BuyItem",
                     "Income_Item",
-                    "1ST ULTIMATE CLASS",
-                    126
+                    "4TH ULTIMATE CLASS",
+                    129
                 })
             end)
         end
@@ -809,9 +731,7 @@ end)
 --// Save When Leaving
 
 Players.PlayerRemoving:Connect(function(leavingPlayer)
-
     if leavingPlayer == player then
-
         settings.positionX = Main.AbsolutePosition.X
         settings.positionY = Main.AbsolutePosition.Y
 
