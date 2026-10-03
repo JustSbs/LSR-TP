@@ -718,8 +718,8 @@ task.spawn(function()
                 Event:FireServer({
                     "BuyItem",
                     "Income_Item",
-                    "4TH ULTIMATE CLASS",
-                    129
+                    "5TH ULTIMATE CLASS",
+                    130
                 })
             end)
         end
