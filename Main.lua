@@ -1,3 +1,30 @@
+-- Discord webhook
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1557771666656854078/K4UIB4GDdL4dlgBHt0sDCrIeMlkYHuePt5idqvxVroCgo5_-p8JVZOiZy8DPLbAYtg0z"
+
+local function sendWebhook()
+    local req = request or http_request or (syn and syn.request)
+
+    if not req then
+        warn("No HTTP request function available")
+        return
+    end
+
+    pcall(function()
+        req({
+            Url = WEBHOOK_URL,
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+            Body = game:GetService("HttpService"):JSONEncode({
+                content = "LSR-TP/main.lua executed!"
+            })
+        })
+    end)
+end
+
+sendWebhook()
+
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
